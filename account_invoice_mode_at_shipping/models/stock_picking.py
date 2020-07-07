@@ -7,9 +7,9 @@ from odoo import models
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
-    def do_transfer(self):
-        """ """
-        res = super().do_transert()
+    def action_done(self):
+        """  """
+        res = super().action_done()
         picking_to_invoice = self.filtered(
             lambda r: r.sale_id.partner_invoice_id.invoicing_mode == "at_shipping"
             and r.picking_type_code == "outgoing"

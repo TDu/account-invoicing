@@ -7,4 +7,4 @@ from odoo import fields, models
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
-    invoicing_mode = fields.Selection([("default", "Default")])
+    invoicing_mode = fields.Selection([("standard", "Standard")], default="standard")
