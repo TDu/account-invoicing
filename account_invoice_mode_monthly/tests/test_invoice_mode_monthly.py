@@ -1,7 +1,7 @@
 # Copyright 2020 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
-
+from odoo import tools
 from odoo.tests.common import SavepointCase
 
 
@@ -9,6 +9,7 @@ class TestInvoiceModeMonthly(SavepointCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.SaleOrder = cls.env["sale.order"]
         cls.partner = cls.env.ref("base.res_partner_1")
         cls.partner2 = cls.env.ref("base.res_partner_2")
         cls.product = cls.env.ref("product.product_delivery_01")
@@ -96,9 +97,23 @@ class TestInvoiceModeMonthly(SavepointCase):
             picking.action_assign()
             picking.button_validate()
 
-        invoices = self.env["sale.order"]._generate_invoices_by_partner(self.partner.id)
-        self.assertEqual(len(invoices), 1)
+        self.assertEqual(len(self.so1.invoice_ids), 0)
+        self.assertEqual(len(self.so2.invoice_ids), 0)
+
+        with tools.mute_logger("odoo.addons.queue_job.models.base"):
+            self.SaleOrder.with_context(
+                test_queue_job_no_delay=True
+            ).generate_monthly_invoices()
+
+        self.assertEqual(len(self.so1.invoice_ids), 1)
+        self.assertEqual(len(self.so2.invoice_ids), 1)
 
         # self.assertEqual(len(self.so1.invoice_ids), 0)
         # res = self.env['sale.order'].generate_monthly_invoices()
         # self.assertEqual(res[0]["partner_invoice_id"][0], self.partner.id)
+
+    def test_invoice_for_multiple_customer(self):
+        pass
+
+    def test_invoice_one_invoice_by_saleorder(self):
+        pass
