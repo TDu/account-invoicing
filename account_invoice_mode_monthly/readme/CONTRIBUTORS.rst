@@ -1,3 +1,3 @@
 * `Camptocamp <https://www.camptocamp.com>`_:
 
-    * Thierry Ducrest <thierr.ducrest@camptocamp.com>
+    * Thierry Ducrest <thierry.ducrest@camptocamp.com>

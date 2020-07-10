@@ -11,7 +11,9 @@ class TestInvoiceModeMonthly(SavepointCase):
         super().setUpClass()
         cls.SaleOrder = cls.env["sale.order"]
         cls.partner = cls.env.ref("base.res_partner_1")
+        cls.partner.invoicing_mode = "monthly"
         cls.partner2 = cls.env.ref("base.res_partner_2")
+        cls.partner2.invoicing_mode = "monthly"
         cls.product = cls.env.ref("product.product_delivery_01")
         cls.so1 = cls.env["sale.order"].create(
             {
@@ -79,41 +81,52 @@ class TestInvoiceModeMonthly(SavepointCase):
         )
         inventory.action_validate()
 
-    def test_invoice_monthly(self):
-        """"""
-        self.partner.invoicing_mode = "monthly"
-        self.partner2.invoicing_mode = "monthly"
-        self.so1.action_confirm()
-        for picking in self.so1.picking_ids:
+    def deliver_invoice(self, sale_order):
+        sale_order.action_confirm()
+        for picking in sale_order.picking_ids:
             for line in picking.move_lines:
                 line.quantity_done = line.product_uom_qty
             picking.action_assign()
             picking.button_validate()
 
-        self.so2.action_confirm()
-        for picking in self.so2.picking_ids:
-            for line in picking.move_lines:
-                line.quantity_done = line.product_uom_qty
-            picking.action_assign()
-            picking.button_validate()
-
-        self.assertEqual(len(self.so1.invoice_ids), 0)
-        self.assertEqual(len(self.so2.invoice_ids), 0)
-
+    def test_saleorder_grouped_in_invoice(self):
+        """Check multiple sale order grouped in one invoice"""
+        self.deliver_invoice(self.so1)
+        self.deliver_invoice(self.so2)
         with tools.mute_logger("odoo.addons.queue_job.models.base"):
             self.SaleOrder.with_context(
                 test_queue_job_no_delay=True
             ).generate_monthly_invoices()
-
         self.assertEqual(len(self.so1.invoice_ids), 1)
         self.assertEqual(len(self.so2.invoice_ids), 1)
+        self.assertEqual(self.so1.invoice_ids, self.so2.invoice_ids)
 
-        # self.assertEqual(len(self.so1.invoice_ids), 0)
-        # res = self.env['sale.order'].generate_monthly_invoices()
-        # self.assertEqual(res[0]["partner_invoice_id"][0], self.partner.id)
+    def test_split_invoice_by_sale_order(self):
+        """For same customer invoice 2 sales order separately."""
+        self.partner.invoicing_mode = "monthly"
+        self.partner.one_invoice_per_order = True
+        self.deliver_invoice(self.so1)
+        self.deliver_invoice(self.so2)
+        with tools.mute_logger("odoo.addons.queue_job.models.base"):
+            self.SaleOrder.with_context(
+                test_queue_job_no_delay=True
+            ).generate_monthly_invoices()
+        self.assertEqual(len(self.so1.invoice_ids), 1)
+        self.assertEqual(len(self.so2.invoice_ids), 1)
+        self.assertNotEqual(self.so1.invoice_ids, self.so2.invoice_ids)
 
     def test_invoice_for_multiple_customer(self):
-        pass
-
-    def test_invoice_one_invoice_by_saleorder(self):
-        pass
+        """Check two sale order for different customers."""
+        self.partner.invoicing_mode = "monthly"
+        self.so2.partner_id = self.partner2
+        self.so2.partner_invoice_id = self.partner2
+        self.so2.partner_shipping_id = self.partner2
+        self.deliver_invoice(self.so1)
+        self.deliver_invoice(self.so2)
+        with tools.mute_logger("odoo.addons.queue_job.models.base"):
+            self.SaleOrder.with_context(
+                test_queue_job_no_delay=True
+            ).generate_monthly_invoices()
+        self.assertEqual(len(self.so1.invoice_ids), 1)
+        self.assertEqual(len(self.so2.invoice_ids), 1)
+        self.assertNotEqual(self.so1.invoice_ids, self.so2.invoice_ids)

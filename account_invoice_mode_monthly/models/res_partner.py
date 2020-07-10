@@ -8,3 +8,8 @@ class ResPartner(models.Model):
     _inherit = "res.partner"
 
     invoicing_mode = fields.Selection(selection_add=([("monthly", "Monthly")]))
+    one_invoice_per_order = fields.Boolean(
+        "One invoice per order",
+        default=False,
+        help="Do not group sale order into one invoice.",
+    )

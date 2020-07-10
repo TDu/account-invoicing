@@ -9,7 +9,6 @@ from odoo.addons.queue_job.job import job
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
-    # TODO : Would be better to have a stored field for this ?
     invoicing_mode = fields.Selection(related="partner_invoice_id.invoicing_mode")
 
     @api.model
@@ -24,7 +23,7 @@ class SaleOrder(models.Model):
         """
         partner_ids = self.read_group(
             [("invoicing_mode", "=", "monthly"), ("invoice_status", "=", "to invoice")],
-            ["id"],  # Wanted the list of order already but not possible it seems
+            ["partner_invoice_id"],
             groupby=["partner_invoice_id"],
         )
         for partner in partner_ids:
@@ -33,12 +32,12 @@ class SaleOrder(models.Model):
 
     @job
     def _generate_invoices_by_partner(self, partner_id, invoicing_mode="monthly"):
-        """  """
-        # print("Partner to generate invoice {}".format(partner_id))
+        """"""
         partner = self.env["res.partner"].browse(partner_id)
         if partner.invoicing_mode != invoicing_mode:
-            # raise FailedJobError("Invalid invoice grouping")
-            return "Invalid invoicing mode"
+            return "Customer {} is not configured for monthly invoicing.".format(
+                partner.name
+            )
         sales = self.search(
             [
                 ("invoice_status", "=", "to invoice"),
@@ -47,7 +46,7 @@ class SaleOrder(models.Model):
             ]
         )
         # By default grouped by partner/currency and refund are not generated
-        invoices = sales._create_invoices()
-        # Should this be done by another job , probably even if it is one line
+        invoices = sales._create_invoices(grouped=partner.one_invoice_per_order)
+        # Should this be done by another job , probably even if it is only one line
         invoices.action_post()
         return invoices
