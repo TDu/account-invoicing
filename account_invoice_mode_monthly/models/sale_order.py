@@ -1,15 +1,13 @@
 # Copyright 2020 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
-from odoo import api, fields, models
+from odoo import api, models
 
 from odoo.addons.queue_job.job import job
 
 
 class SaleOrder(models.Model):
     _inherit = "sale.order"
-
-    invoicing_mode = fields.Selection(related="partner_invoice_id.invoicing_mode")
 
     @api.model
     def generate_monthly_invoices(self):
