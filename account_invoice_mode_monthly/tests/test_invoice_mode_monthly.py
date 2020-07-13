@@ -58,6 +58,7 @@ class TestInvoiceModeMonthly(SavepointCase):
                 "pricelist_id": cls.env.ref("product.list0").id,
             }
         )
+        cls.company = cls.so1.company_id
 
         stock_location = cls.env.ref("stock.stock_location_stock")
         inventory = cls.env["stock.inventory"].create(
@@ -96,7 +97,7 @@ class TestInvoiceModeMonthly(SavepointCase):
         with tools.mute_logger("odoo.addons.queue_job.models.base"):
             self.SaleOrder.with_context(
                 test_queue_job_no_delay=True
-            ).generate_monthly_invoices()
+            ).generate_monthly_invoices(self.company)
         self.assertEqual(len(self.so1.invoice_ids), 1)
         self.assertEqual(len(self.so2.invoice_ids), 1)
         self.assertEqual(self.so1.invoice_ids, self.so2.invoice_ids)
@@ -110,7 +111,7 @@ class TestInvoiceModeMonthly(SavepointCase):
         with tools.mute_logger("odoo.addons.queue_job.models.base"):
             self.SaleOrder.with_context(
                 test_queue_job_no_delay=True
-            ).generate_monthly_invoices()
+            ).generate_monthly_invoices(self.company)
         self.assertEqual(len(self.so1.invoice_ids), 1)
         self.assertEqual(len(self.so2.invoice_ids), 1)
         self.assertNotEqual(self.so1.invoice_ids, self.so2.invoice_ids)
@@ -126,7 +127,7 @@ class TestInvoiceModeMonthly(SavepointCase):
         with tools.mute_logger("odoo.addons.queue_job.models.base"):
             self.SaleOrder.with_context(
                 test_queue_job_no_delay=True
-            ).generate_monthly_invoices()
+            ).generate_monthly_invoices(self.company)
         self.assertEqual(len(self.so1.invoice_ids), 1)
         self.assertEqual(len(self.so2.invoice_ids), 1)
         self.assertNotEqual(self.so1.invoice_ids, self.so2.invoice_ids)

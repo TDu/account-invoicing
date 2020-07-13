@@ -14,7 +14,7 @@ class TestInvoiceModeMonthly(SavepointCase):
         cls.SaleOrder = cls.env["sale.order"]
 
     def test_late_invoicing_for_last_month(self):
-        """Check   """
+        """Check that last month invoicing will be done if missed."""
         company = self.env.company
         company.invoicing_mode_monthly_day_todo = 31
         company.invoicing_mode_monthly_last_execution = "2020-05-31"
@@ -28,10 +28,15 @@ class TestInvoiceModeMonthly(SavepointCase):
             self.assertFalse(res)
 
     def test_selected_day_not_exist_in_month(self):
-        """Check   """
+        """Check on last day of the month invoicing is done.
+
+        The day of invoicing selected could not exist in the current
+        month, but invoicing should still be executed on the last
+        day of the month.
+        """
         company = self.env.company
         company.invoicing_mode_monthly_day_todo = 31
-        company.invoicing_mode_monthly_last_execution = "2020-05-31"
+        company.invoicing_mode_monthly_last_execution = "2020-05-29"
         self.assertTrue(self.env.company)
         with freeze_time("2020-06-29"):
             res = self.SaleOrder._company_monthly_invoicing_today()
