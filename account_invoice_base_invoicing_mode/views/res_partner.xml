@@ -8,6 +8,7 @@
             <xpath expr="//page[@name='accounting']/group" position="inside">
                 <group name="invoicing_mode">
                     <field name="invoicing_mode" />
+                    <field name="one_invoice_per_order" />
                 </group>
             </xpath>
         </field>
