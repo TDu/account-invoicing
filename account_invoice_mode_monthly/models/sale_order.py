@@ -36,13 +36,15 @@ class SaleOrder(models.Model):
             groupby=["partner_invoice_id"],
         )
         for partner in partner_ids:
-            self._generate_invoices_by_partner(partner["partner_invoice_id"][0])
+            self.with_delay()._generate_invoices_by_partner(
+                partner["partner_invoice_id"][0]
+            )
         companies.write({"invoicing_mode_monthly_last_execution": datetime.now()})
         return partner_ids
 
-    @job
+    @job(default_channel="root.invoice_monthly")
     def _generate_invoices_by_partner(self, partner_id, invoicing_mode="monthly"):
-        """"""
+        """Generate invoices for a customer sales order."""
         partner = self.env["res.partner"].browse(partner_id)
         if partner.invoicing_mode != invoicing_mode:
             return "Customer {} is not configured for monthly invoicing.".format(
@@ -52,13 +54,13 @@ class SaleOrder(models.Model):
             [
                 ("invoice_status", "=", "to invoice"),
                 ("partner_invoice_id", "=", partner.id),
-                # ("order_line.qty_to_invoice", ">", 0),
+                ("order_line.qty_to_invoice", ">", 0),
             ]
         )
         # By default grouped by partner/currency. Refund are not generated
         invoices = sales._create_invoices(grouped=partner.one_invoice_per_order)
-        # Should this be done by another job , probably even if it is only one line
-        invoices.action_post()
+        for invoice in invoices:
+            invoice.with_delay()._validate_invoice(invoice)
         return invoices
 
     @api.model
